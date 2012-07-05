@@ -54,6 +54,7 @@ def replace(text,repl=""):
         "レーベル",#Label
         "日本語のページを",#A page of Japanese
         "もっとツールを見る",# see more tools
+        "アメリカ合衆国のデジタル ミレニアム著作権法に基づいたクレームに応じ", #DMCA
         ]]
     text=re.sub("|".join(replace_text),repl,text)
     return text
@@ -61,10 +62,11 @@ def replace(text,repl=""):
 
 def get_vaid(string):
     vaid=string
-    vaid_match=re.search(r"(\w+[-]?\d+)",string,re.IGNORECASE)
+    vaid_match=re.search(r"([a-zA-Z]+[-]?\d+)",string,re.IGNORECASE)
     if vaid_match is not None:
         vaid=vaid_match.group(1)
     return vaid
+    
 
 def get_vaname(query,verbose=False,debug=False):
     html=get_google_content(query)
@@ -117,7 +119,7 @@ Usage:
 def main():
     #html=open("out").read().decode("utf=8")
     ## handle parameter
-    options,nonoptions = getopt.getopt(sys.argv[1:],"p:q:vdmg",["query=","path=","verbose","debug","move","go"])
+    options,nonoptions = getopt.getopt(sys.argv[1:],"p:q:vdmgi",["query=","path=","verbose","debug","move","go","id"])
     
     query=None
     verbose=False
@@ -125,6 +127,7 @@ def main():
     path=None
     move=False
     go=False
+    id=False
     for opt,arg in options:
         if opt in ("-q","--query"):
             query=arg.decode()
@@ -133,18 +136,20 @@ def main():
         if opt in ("-d","--debug"):
             debug=True
         if opt in ("-p","--path"):
-            rpath=os.path.normpath(arg.decode(sys.getdefaultencoding()))
-            if os.path.exists(rpath) and (os.path.isdir(rpath) or os.path.isfile(rpath)):
-                path=os.path.abspath(rpath)
-                vaid=get_vaid(os.path.basename(path))
+            upath=os.path.normpath(arg.decode(sys.getdefaultencoding()))
+            if os.path.exists(upath.encode()) and (os.path.isdir(upath.encode()) or os.path.isfile(upath.encode())):
+                path=os.path.abspath(upath.encode())
+                vaid=get_vaid(os.path.basename(upath.encode()))
                 query=vaid
             else:
-                usage()
+                printu("Error path:"+upath)
                 exit(1)
         if opt in ("-m","--move"):
             move=True
         if opt in ("-g","--go"):
             go=True
+        if opt in ("-i","--id"):
+            id=True
 
     if query:
         vaname=get_vaname(query,verbose,debug)
@@ -157,11 +162,13 @@ def main():
         return
     elif move and path:
         #in move mode,first dry run
-        dstpath=os.path.join(os.path.dirname(rpath),vaid+"(%s)"%vaname)
-        printu("""mv '%s' '%s' """%(rpath,dstpath))
+        dstpath=os.path.join(os.path.dirname(upath),vaid+"(%s)"%vaname)
+        printu( """mv '%s' '%s' """%(upath.encode(), dstpath.encode()) )
         if go:
             shutil.move(path,dstpath)
     elif vaname:
+        if id:
+            vaname="[%s](%s)"%(vaid,vaname)
         #default: just print the vaname
         printu(vaname)
 
