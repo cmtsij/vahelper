@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import defaultencoding
 import htmltool
@@ -8,6 +9,7 @@ import cjk
 import urllib,urllib2
 import re
 import getopt
+import shutil
 from collections import Counter
 
 
@@ -55,6 +57,48 @@ def replace(text,repl=""):
         ]]
     text=re.sub("|".join(replace_text),repl,text)
     return text
+
+
+def get_vaid(string):
+    vaid_match=re.search(r"(\w+[-]?\d+)",string,re.IGNORECASE)
+    if vaid_match is not None:
+        vaid=vaid_match.group(1)
+    else:
+        print "Non available vaid for " +string
+    return vaid
+
+def get_vaname(query,verbose=False,debug=False):
+    html=get_google_content(query)
+    html=html.lower()
+    html=htmltool.decode_entity(html)
+    html=htmltool.remove_tags(html,repl="||")
+    html=htmltool.clean_tags(html,repl="||")
+    if debug:
+        printu(html)
+    
+    html=separate(html,repl="||")
+    html=replace(html,"")
+    html=cjk.half2full(html)
+
+    strings_list=[content.strip() for content in html.split("||") if len(content.strip()) ]
+    strings_count=Counter(strings_list)
+    for string,count in strings_count.items():
+        if count <= 2:
+            #del words_count[string]
+            pass
+
+    l=[(string,count*len(string)*(10 if cjk.contain_cjk(string) else 1)) for string,count in strings_count.items()]
+    l.sort(key=lambda t:t[1],reverse=True)  #sort by weight
+
+    
+    if verbose:
+        #dump (word,weight) list
+        for string,weight in sorted(l,key=lambda t:t[1]):
+            printu("%-6d:%s"%(weight,string))
+    ## max
+    maxweight_string=(l[0][0])  #print max weight string
+    maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:5] if maxweight_string in string]
+    return max(maxweight_substring,key=len)
         
         
 def printu(unistr):
@@ -74,11 +118,14 @@ Usage:
 def main():
     #html=open("out").read().decode("utf=8")
     ## handle parameter
-    options,nonoptions = getopt.getopt(sys.argv[1:],"q:vd",["query=","verbose","debug"])
+    options,nonoptions = getopt.getopt(sys.argv[1:],"p:q:vdmg",["query=","path=","verbose","debug","move","go"])
     
     query=None
     verbose=False
     debug=False
+    path=None
+    move=False
+    go=False
     for opt,arg in options:
         if opt in ("-q","--query"):
             query=arg.decode()
@@ -86,46 +133,38 @@ def main():
             verbose=True
         if opt in ("-d","--debug"):
             debug=True
+        if opt in ("-p","--path"):
+            rpath=os.path.normpath(arg.decode(sys.getfilesystemencoding()))
+            if os.path.exists(rpath) and (os.path.isdir(rpath) or os.path.isfile(rpath)):
+                path=os.path.abspath(rpath)
+                vaid=get_vaid(os.path.basename(path))
+                query=vaid
+            else:
+                usage()
+                exit(1)
+        if opt in ("-m","--move"):
+            move=True
+        if opt in ("-g","--go"):
+            go=True
 
-    if query is None:
-        if len(nonoptions):
-            query=nonoptions[0].decode()
-        else:
-            usage()
-            exit(1)
-    
-    html=get_google_content(query)
-    html=html.lower()
-    html=htmltool.decode_entity(html)
-    html=htmltool.remove_tags(html,repl="||")
-    html=htmltool.clean_tags(html,repl="||")
-    if debug:
-        printu(html)
-        return
-    
-    html=separate(html,repl="||")
-    html=replace(html,"")
-    html=cjk.half2full(html)
-
-    strings_list=[content.strip() for content in html.split("||") if len(content.strip()) ]
-    strings_count=Counter(strings_list)
-    for string,count in strings_count.items():
-        if count <= 2:
-            #del words_count[string]
-            pass
-
-    l=[(string,count*len(string)*(10 if cjk.contain_cjk(string) else 1)) for string,count in strings_count.items()]
-    l.sort(key=lambda t:t[1],reverse=True)  #sort by weight
-
-    if verbose:
-        ## list
-        for string,weight in sorted(l,key=lambda t:t[1]):
-            printu("%-6d:%s"%(weight,string))
+    if query:
+        vaname=get_vaname(query,verbose,debug)
     else:
-        ## max
-        maxweight_string=(l[0][0])  #print max weight string
-        maxweight_substring=[re.sub("[\w ]+$","",string) for string,weight in l[0:5] if maxweight_string in string]
-        printu(max(maxweight_substring,key=len))
+        usage()
+        exit(1)
+
+    #debug mode
+    if verbose or debug:
+        return
+    elif move and path:
+        #in move mode,first dry run
+        dstpath=os.path.join(os.path.dirname(rpath),vaid+"(%s)"%vaname)
+        printu("""mv '%s' '%s' """%(rpath,dstpath))
+        if go:
+            shutil.move(path,dstpath)
+    elif vaname:
+        #default: just print the vaname
+        printu(vaname)
 
 
 if __name__ == "__main__":
