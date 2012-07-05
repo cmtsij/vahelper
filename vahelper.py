@@ -85,7 +85,7 @@ def replace(text,repl=""):
         "-",
         "avi","wmv","release",
         "(\d+(\.\d*)?|\.\d+) *(gb|mb)", #size in mb or gb
-        "発売日","監督","動画","収録時間","利用規約","検索","出演者","画像","時間","予約","商品","詳細",
+        "発売日","監督","動画","収録時間","利用規約","検索","出演者","画像","時間","予約","商品","詳細","価格",
         "アダルト","dvd","通販",#Adult dvd mail order
         "ニュース",#news
         "レーベル",#Label
@@ -135,7 +135,7 @@ def get_vaname(query,verbose=False,debug=False):
             printu("%-6d:%s"%(weight,string))
     ## max
     maxweight_string=(l[0][0])  #print max weight string
-    maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:10] if maxweight_string in string]
+    maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:5] if maxweight_string in string]
     return max(maxweight_substring,key=len)
         
         
