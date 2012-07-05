@@ -133,7 +133,7 @@ def main():
         if opt in ("-d","--debug"):
             debug=True
         if opt in ("-p","--path"):
-            rpath=os.path.normpath(arg.decode(sys.getfilesystemencoding()))
+            rpath=os.path.normpath(arg.decode(sys.getdefaultencoding()))
             if os.path.exists(rpath) and (os.path.isdir(rpath) or os.path.isfile(rpath)):
                 path=os.path.abspath(rpath)
                 vaid=get_vaid(os.path.basename(path))
