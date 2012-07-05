@@ -12,11 +12,44 @@ import getopt
 import shutil
 from collections import Counter
 
+def read_cache_content(keyword):
+    path="/tmp/vahelp/cache"
+    file=os.path.join(path,keyword+".html")
+
+    try:
+        os.makedirs(path)
+    except:
+        pass
+
+    if(os.path.isfile(file)):
+        with open(file,"rb") as f:
+            return f.read()
+    else:
+        return None
+    
+
+def write_cache_content(keyword,content):
+    path="/tmp/vahelp/cache"
+    file=os.path.join(path,keyword+".html")
+
+    try:
+        os.makedirs(path)
+    except:
+        pass
+
+    with open(file,"wb+") as f:
+        f.write(content)
+    
 
 def get_google_content(keyword,urlbase="https://www.google.co.jp/search?"):
     '''
     return the html content in unicode
     '''
+    
+    html_content=read_cache_content(keyword)
+    if html_content:
+        return html_content
+    
     urlbase="https://www.google.co.jp/search?"
     get=urllib.urlencode( { 'q': keyword,
                         'ie' : "utf-8",
@@ -29,7 +62,10 @@ def get_google_content(keyword,urlbase="https://www.google.co.jp/search?"):
     headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
     html_request = urllib2.Request(urlbase+get, None, headers)
     html_content=urllib2.urlopen(html_request).read()
-    return html_content.decode("utf-8")
+    html_content=html_content.decode("utf-8")
+    
+    write_cache_content(keyword,html_content)
+    return html_content
 
 
 def separate(text,repl=""):
