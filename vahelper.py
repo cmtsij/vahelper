@@ -23,7 +23,7 @@ def get_google_content(keyword,urlbase="https://www.google.co.jp/search?"):
                         'oe' : "utf-8",
                         'safe': "off",  #child protect
                         'filter': "1",  #duplicate filter
-                        'num': "20"     #count
+                        'num': "20",     #count
                        })
     
     headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
@@ -54,7 +54,7 @@ def replace(text,repl=""):
         "レーベル",#Label
         "日本語のページを",#A page of Japanese
         "もっとツールを見る",# see more tools
-        "アメリカ合衆国のデジタル ミレニアム著作権法に基づいたクレームに応じ", #DMCA
+        "([^\|]*合衆国.*作権法[^\|]*)","[^\|]*chillingeffects.org[^\|]*", #DMCA
         ]]
     text=re.sub("|".join(replace_text),repl,text)
     return text
