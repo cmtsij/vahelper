@@ -60,11 +60,10 @@ def replace(text,repl=""):
 
 
 def get_vaid(string):
+    vaid=string
     vaid_match=re.search(r"(\w+[-]?\d+)",string,re.IGNORECASE)
     if vaid_match is not None:
         vaid=vaid_match.group(1)
-    else:
-        print "Non available vaid for " +string
     return vaid
 
 def get_vaname(query,verbose=False,debug=False):
