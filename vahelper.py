@@ -50,6 +50,7 @@ def replace(text,repl=""):
         "avi","wmv","release",
         "(\d+(\.\d*)?|\.\d+) *(gb|mb)", #size in mb or gb
         "発売日","監督","動画","収録時間","利用規約","検索","出演者","画像","時間","予約","商品","詳細",
+        "アダルト","dvd","通販",#Adult dvd mail order
         "ニュース",#news
         "レーベル",#Label
         "日本語のページを",#A page of Japanese
@@ -84,9 +85,9 @@ def get_vaname(query,verbose=False,debug=False):
     strings_list=[content.strip() for content in html.split("||") if len(content.strip()) ]
     strings_count=Counter(strings_list)
     for string,count in strings_count.items():
-        if count <= 2:
-            #del words_count[string]
+        if count <= 1:
             pass
+            #del strings_count[string]
 
     l=[(string,count*len(string)*(10 if cjk.contain_cjk(string) else 1)) for string,count in strings_count.items()]
     l.sort(key=lambda t:t[1],reverse=True)  #sort by weight
@@ -98,7 +99,7 @@ def get_vaname(query,verbose=False,debug=False):
             printu("%-6d:%s"%(weight,string))
     ## max
     maxweight_string=(l[0][0])  #print max weight string
-    maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:5] if maxweight_string in string]
+    maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:10] if maxweight_string in string]
     return max(maxweight_substring,key=len)
         
         
