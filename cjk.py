@@ -8,6 +8,7 @@ def get_separator():
         "「","」",
         "【","】",
         "（","）",
+        "«",
         ]
     __separator__ = [ c.decode("utf-8") for c in __separator_utf8__ ] #translate to unicode
 

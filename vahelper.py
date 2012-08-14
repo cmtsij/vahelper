@@ -11,46 +11,41 @@ import re
 import getopt
 import shutil
 from collections import Counter
+import hashlib
 
-def read_cache_content(keyword):
-    path="/tmp/vahelp/cache"
-    file=os.path.join(path,keyword+".html")
 
+def get_web_content_with_cache(url,debug=False):
+    cache_hash=hashlib.md5(url).hexdigest()[0:8]
+    path="/tmp/vahelper/cache"
+    file=os.path.join(path,cache_hash)
     try:
         os.makedirs(path)
     except:
         pass
 
+    #read_cache_content
     if(os.path.isfile(file)):
         with open(file,"rb") as f:
+            if debug: 
+                printu("read from cache file: "+file)
             return f.read()
-    else:
-        return None
-    
 
-def write_cache_content(keyword,content):
-    path="/tmp/vahelp/cache"
-    file=os.path.join(path,keyword+".html")
+    #read from internet
+    headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
+    html_request = urllib2.Request(url, None, headers)
+    web_content=urllib2.urlopen(html_request).read()
 
-    try:
-        os.makedirs(path)
-    except:
-        pass
-
+    #write_cache_content
     with open(file,"wb+") as f:
-        f.write(content)
+        f.write(web_content)
     
+    return web_content
 
-def get_google_content(keyword,urlbase="https://www.google.co.jp/search?"):
+
+def get_google_content(keyword,urlbase="https://www.google.co.jp/search?",debug=False):
     '''
     return the html content in unicode
     '''
-    
-    html_content=read_cache_content(keyword)
-    if html_content:
-        return html_content
-    
-    urlbase="https://www.google.co.jp/search?"
     get=urllib.urlencode( { 'q': keyword,
                         'ie' : "utf-8",
                         'oe' : "utf-8",
@@ -59,12 +54,9 @@ def get_google_content(keyword,urlbase="https://www.google.co.jp/search?"):
                         'num': "20",     #count
                        })
     
-    headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
-    html_request = urllib2.Request(urlbase+get, None, headers)
-    html_content=urllib2.urlopen(html_request).read()
+    html_content=get_web_content_with_cache(urlbase+get,debug);
     html_content=html_content.decode("utf-8")
-    
-    write_cache_content(keyword,html_content)
+
     return html_content
 
 
@@ -106,7 +98,7 @@ def get_vaid(string):
     
 
 def get_vaname(query,verbose=False,debug=False):
-    html=get_google_content(query)
+    html=get_google_content(query,debug=debug)
     html=html.lower()
     html=htmltool.decode_entity(html)
     html=htmltool.remove_tags(html,repl="||")
@@ -144,70 +136,86 @@ def printu(unistr):
 
 
 def usage():
-    print( 
+    printu( 
 """
 Usage: 
-    -q keyword or --query=keyword :Query kerword
-    [-v] [--verbose]              :List all string and it's weight
-    [-d] [--debug]                :Dump html and stop
+    -k keyword | --keyword=keyword    # Kerword to query
+    -p path    | --path=path          # Path to query
+    -d         | --debug              # Dump html and stop process
+    -v         | --verbose            # verbose
+    -w         | --weight             # show the weight of all strings
+    --mt                              # test move of [src -> dst]
+    --mv                              # do move of [src -> dst]
 """
 )
     
 def main():
     #html=open("out").read().decode("utf=8")
     ## handle parameter
-    options,nonoptions = getopt.getopt(sys.argv[1:],"p:q:vdmgi",["query=","path=","verbose","debug","move","go","id"])
-    
-    query=None
-    verbose=False
-    debug=False
-    path=None
-    move=False
-    go=False
-    id=False
+    try:
+        options,nonoptions = getopt.getopt(sys.argv[1:],"k:p:dvw",["keyword=","path=","debug","verbose","weight","mt","mv"])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        printu("Error: "+str(err)) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+
+    opts={  "keyword":None,
+            "path":None,
+            "debug":False,
+            "verbose":False,
+            "weight":False,
+            "mt":False,
+            "mv":False,
+        }
     for opt,arg in options:
-        if opt in ("-q","--query"):
-            query=arg.decode()
-        if opt in ("-v","--verbose"):
-            verbose=True
-        if opt in ("-d","--debug"):
-            debug=True
+        if opt in ("-k","--keyword"):
+            opts["keyword"]=arg.decode()
         if opt in ("-p","--path"):
             upath=os.path.normpath(arg.decode(sys.getdefaultencoding()))
-            if os.path.exists(upath.encode()) and (os.path.isdir(upath.encode()) or os.path.isfile(upath.encode())):
-                path=os.path.abspath(upath.encode())
-                vaid=get_vaid(os.path.basename(upath.encode()))
-                query=vaid
+            rpath=upath.encode()
+            if os.path.exists(rpath) and (os.path.isdir(rpath) or os.path.isfile(rpath)):
+                opts["path"]=os.path.abspath(rpath)
+                vaid=get_vaid(os.path.basename(rpath))
             else:
                 printu("Error path:"+upath)
-                exit(1)
-        if opt in ("-m","--move"):
-            move=True
-        if opt in ("-g","--go"):
-            go=True
-        if opt in ("-i","--id"):
-            id=True
+                sys.exit(1)
+        if opt in ("-d","--debug"):
+            opts["debug"]=True
+        if opt in ("-v","--verbose"):
+            opts["verbose"]=True
+        if opt in ("-w","--weight"):
+            opts["weight"]=True
+        if opt in ("--mt"):
+            opts["mt"]=True
+        if opt in ("--mv"):
+            opts["mv"]=True
+    
 
-    if query:
-        vaname=get_vaname(query,verbose,debug)
+    if opts["path"] and not opts["keyword"]:
+        opts["keyword"]=vaid    #use vaid instead keyword
+    if opts["keyword"]:
+        vaid=opts["keyword"]    #no matter vaid, use kerword to replace current vaid
+        vaname=get_vaname(opts["keyword"],opts["verbose"],opts["debug"])
+        if opts["verbose"] or opts["debug"]:    #debug mode
+            return
     else:
+        printu("No valid keyword")
         usage()
-        exit(1)
+        sys.exit(1)
 
-    #debug mode
-    if verbose or debug:
-        return
-    elif move and path:
-        #in move mode,first dry run
+    if opts["path"]:
+        if not opts["mt"] and not opts["mv"]:
+            printu(vaname)
+            return
+        #in move mode
         dstpath=os.path.join(os.path.dirname(upath),vaid+"(%s)"%vaname)
-        printu( """mv '%s' '%s' """%(upath.encode(), dstpath.encode()) )
-        if go:
-            shutil.move(path,dstpath)
-    elif vaname:
-        if id:
-            vaname="[%s](%s)"%(vaid,vaname)
-        #default: just print the vaname
-        printu(vaname)
+        if opts["mt"]:
+            printu( """mv '%s' '%s' """%(upath.encode(), dstpath.encode()) ) #first dry run
+        if opts["mv"]:
+            shutil.move(opts["path"],dstpath) # do move!!
+    else:
+        printu(vaname) 
 
 
 if __name__ == "__main__":
