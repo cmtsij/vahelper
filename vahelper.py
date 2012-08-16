@@ -196,7 +196,7 @@ def main():
         opts["keyword"]=vaid    #use vaid instead keyword
     if opts["keyword"]:
         vaid=opts["keyword"]    #no matter vaid, use kerword to replace current vaid
-        vaname=get_vaname(opts["keyword"],opts["verbose"],opts["debug"])
+        vaname=get_vaname(opts["keyword"],opts["verbose"],opts["debug"]).replace(os.path.sep,"")
         if opts["verbose"] or opts["debug"]:    #debug mode
             return
     else:
