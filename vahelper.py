@@ -76,7 +76,7 @@ def replace(text,repl=""):
     replace_text=[x.decode("utf-8") for x in [
         "-",
         "avi","wmv","release",
-        "(\d+(\.\d*)?|\.\d+) *(gb|mb)", #size in mb or gb
+        "(\d+(\.\d*)?|\.\d+) *(g[b]?|mb) *", #size in mb or gb
         "発売日","監督","動画","収録時間","利用規約","検索","出演者","画像","時間","予約","商品","詳細","価格",
         "アダルト","dvd","通販",#Adult dvd mail order
         "ニュース",#news
