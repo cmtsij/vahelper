@@ -12,6 +12,11 @@ import getopt
 import shutil
 from collections import Counter
 import hashlib
+from PIL import Image
+import StringIO
+
+def get_image_from_buff(buff):
+    return Image.open(StringIO.StringIO(buff))
 
 
 def get_web_content_with_cache(url,debug=False):
@@ -23,22 +28,21 @@ def get_web_content_with_cache(url,debug=False):
     except:
         pass
 
-    #read_cache_content
+    ## read_cache_content
     if(os.path.isfile(file)):
         with open(file,"rb") as f:
             if debug: 
                 printu("read from cache file: "+file)
             return f.read()
 
-    #read from internet
+    ## read from internet
     headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
     html_request = urllib2.Request(url, None, headers)
     web_content=urllib2.urlopen(html_request).read()
 
-    #write_cache_content
+    ## write_cache_content
     with open(file,"wb+") as f:
         f.write(web_content)
-    
     return web_content
 
 
@@ -51,7 +55,7 @@ def get_google_content_pic_search(keyword,urlbase="https://www.google.com/search
                         'oe' : "utf-8",
                         'safe': "off",  #child protect
                         'filter': "1",  #duplicate filter
-                        'num': "20",     #count
+                        'num': "30",     #count
                         'tbm': "isch",  #image search
                         'biw': "%s"%width,      # image width
                         'bih': "%s"%height,     # image height
@@ -67,7 +71,6 @@ def get_google_content_pic_search(keyword,urlbase="https://www.google.com/search
     return html_content
 
 
-
 def get_vaid(string):
     vaid=string
     vaid_match=re.search(r"([a-zA-Z]+[-]?\d+)",string,re.IGNORECASE)
@@ -76,7 +79,7 @@ def get_vaid(string):
     return vaid
     
 
-def get_vapic(keyword,path=os.path.abspath(os.path.curdir.decode()),num=3,height=800,width=600,verbose=False,debug=False):
+def get_vapic(keyword,path=os.path.abspath(os.path.curdir.decode()),num=3,height=700,width=500,verbose=False,debug=False):
     html=get_google_content_pic_search(keyword,debug=debug)
     #html=html.lower()
     html=htmltool.decode_entity(html)
@@ -86,30 +89,35 @@ def get_vapic(keyword,path=os.path.abspath(os.path.curdir.decode()),num=3,height
         printu(html)
     
     imgurls=re.findall("imgurl=([^&]*?.jpg)", html, flags=re.I)
-    
-    
-    
     for url in imgurls:
-        if debug:
-            printu(url)
+        if num == 0:
+            break
+
+        if verbose:
+            printu("try url: %s"%url)
         
-        content=None
         try:
+            ## get image from internet
+            content=None
             content=get_web_content_with_cache(url)
             if not content:
                 continue
+            
+            ## check image size
+            image=get_image_from_buff(content)
+            if image.size[0] < 700 or image.size[1] < 500:
+                continue ## skip small image
+            
+            ## save image to path
             filepath=os.path.join(path,os.path.basename(url))
             with open(filepath,"wb+") as f:
                 f.write(content)
-                printu("[%-32s] <= [%-64s]"%(os.path.relpath(filepath),url))
                 num=num-1
-                if num == 0:
-                    return
-        except urllib2.HTTPError as e:
-            printu("%s: %s"%(str(e),url))
+                printu("(%4d,%4d)[%-32s] <= [%s]"%(image.size[0],image.size[1],os.path.relpath(filepath),url))
         except Exception as e:
-            printu("Error:%s: %s: %s"%(type(e),str(e),url))
-            #printu("un%s: %s"%(e.strerror,url))
+            if verbose:
+                printu("Error:%s: %s: %s"%(type(e),str(e),url))
+
         
 def printu(unistr):
     print unistr.encode()
@@ -128,6 +136,7 @@ Usage:
     -v         | --verbose            # verbose
 """
 )
+    
     
 def main():
     #html=open("out").read().decode("utf=8")
@@ -171,12 +180,12 @@ def main():
             opts["verbose"]=True
 
     if opts["width"]==0 and opts["height"]==0 :
-        opts["width"]=533;
+        opts["width"]=536;
         opts["height"]=800;
     elif opts["width"]==0:
-        opts["width"]=opts["height"]*800/533
+        opts["width"]=opts["height"]*800/536
     elif opts["height"]==0:
-        opts["height"]=opts["width"]*533/800
+        opts["height"]=opts["width"]*536/800
     if opts["path"]:
         vaid=opts["keyword"] if opts["keyword"] else get_vaid(os.path.basename(opts["path"]))
         printu(vaid)
@@ -191,8 +200,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
     	pass
     	
-'''
-def get_match(str1,str2):
-    s=difflib.SequenceMatcher(None,str1,str2)
-    return s.get_matching_blocks()
-'''
