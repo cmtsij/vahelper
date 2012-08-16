@@ -33,7 +33,7 @@ def get_web_content_with_cache(url,debug=False):
     #read from internet
     headers = { 'User-Agent' : 'Mozilla/5.0' }	# google banned unvalid user-agent.
     html_request = urllib2.Request(url, None, headers)
-    web_content=urllib2.urlopen(html_request,timeout=3).read()
+    web_content=urllib2.urlopen(html_request).read()
 
     #write_cache_content
     with open(file,"wb+") as f:
@@ -55,6 +55,10 @@ def get_google_content_pic_search(keyword,urlbase="https://www.google.com/search
                         'tbm': "isch",  #image search
                         'biw': "%s"%width,      # image width
                         'bih': "%s"%height,     # image height
+                        'sa' : "N",
+                        'tab': "wi",
+                        'hl' : "zh-TW",
+                        'um' : "1",
                        })
     
     html_content=get_web_content_with_cache(urlbase+get,debug);
@@ -74,7 +78,7 @@ def get_vaid(string):
 
 def get_vapic(keyword,path=os.path.abspath(os.path.curdir.decode()),num=3,height=800,width=600,verbose=False,debug=False):
     html=get_google_content_pic_search(keyword,debug=debug)
-    html=html.lower()
+    #html=html.lower()
     html=htmltool.decode_entity(html)
     html=htmltool.remove_tags(html,repl="||")
     #html=htmltool.clean_tags(html,repl="||")
