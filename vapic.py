@@ -101,12 +101,17 @@ def get_vapic(keyword,path=os.path.abspath(os.path.curdir.decode()),num=3,height
             content=None
             content=get_web_content_with_cache(url)
             if not content:
+                if verbose:
+                    printu("get no content")
                 continue
             
             ## check image size
             image=get_image_from_buff(content)
             if image.size[0] < 700 or image.size[1] < 500:
-                continue ## skip small image
+                if verbose:
+                    printu("image size(%d,%d) too small than (700,500)"%image.size)
+                else: #not verbose
+                    continue ## skip small image
             
             ## save image to path
             filepath=os.path.join(path,os.path.basename(url))
