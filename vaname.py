@@ -129,7 +129,15 @@ def get_vaname(query,verbose=False,debug=False):
     maxweight_string=(l[0][0])  #print max weight string
     maxweight_substring=[re.sub("[\w \.]+$","",string) for string,weight in l[0:5] if maxweight_string in string]
     return max(maxweight_substring,key=len)
-        
+
+
+def filename_strip(name):
+    ascii_separator=[ "*",
+                      "\\", "\/",
+                    ]
+    name=re.sub("[" + "".join(ascii_separator) +"]","",name)
+    return name
+
         
 def printu(unistr):
     print unistr.encode()
@@ -196,7 +204,7 @@ def main():
         opts["keyword"]=vaid    #use vaid instead keyword
     if opts["keyword"]:
         vaid=opts["keyword"]    #no matter vaid, use kerword to replace current vaid
-        vaname=get_vaname(opts["keyword"],opts["verbose"],opts["debug"]).replace(os.path.sep,"")
+        vaname=get_vaname(opts["keyword"],opts["verbose"],opts["debug"])
         if opts["verbose"] or opts["debug"]:    #debug mode
             return
     else:
@@ -209,6 +217,7 @@ def main():
             printu(vaname)
             return
         #in move mode
+        vaname=filename_strip(vaname)
         dstpath=os.path.join(os.path.dirname(upath),vaid+"(%s)"%vaname)
         if opts["mt"]:
             printu( """mv '%s' '%s' """%(upath.encode(), dstpath.encode()) ) #first dry run
